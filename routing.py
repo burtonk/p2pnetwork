@@ -5,39 +5,41 @@ import json
 import socket 
 import datetime
 import time
-import threading
+from threading import Thread
+import thread
 
+join = {"type": "JOINING_NETWORK_SIMPLIFIED", "node_id": None, "target_id": None, "ip_address": None }
+join_relay = {"type": "JOINING_NETWORK_RELAY_SIMPLIFIED", "node_id": None, "target_id": None, "gateway_id": None }
+routing = {"type": "ROUTING_INFO", "gateway_id": None, "node_id": None, "ip_address": None, "routing_table" : []}
+leaving = {"type": "LEAVING_NETWORK", "node_id": None} 
+index = {"type": "INDEX", "target_id": None, "sender_id": None, "keyword": None, "link": []}
+search = {"type": "SEARCH","word": None, "node_id": None, "sender_id": None }
+search_response = {"type": "SEARCH_RESPONSE","word": None, "node_id": None, "sender_id": None, "response":[]}
+ping = {"type": "PING", "target_id": None, "sender_id": None, "ip_address": None}
+ack = {"type": "ACK", "node_id": None, "ip_address": None}
+ack_index = {"type": "ACK_INDEX", "node_id": None, "keyword": None}
+
+routing_table = {}
+information = {}
+conditions = {}
+polling = {}
+wait_time = 10
+ip_address = "127.0.0.3"
+node_id = 0
+	
 class Routing: 
 
-	join = {"type": "JOINING_NETWORK_SIMPLIFIED", "node_id": None, "target_id": None, "ip_address": None }
-	join_relay = {"type": "JOINING_NETWORK_RELAY_SIMPLIFIED", "node_id": None, "target_id": None, "gateway_id": None }
-	routing = {"type": "ROUTING_INFO", "gateway_id": None, "node_id": None, "ip_address": None, "routing_table" : []}
-	leaving = {"type": "LEAVING_NETWORK", "node_id": None} 
-	index = {"type": "INDEX", "target_id": None, "sender_id": None, "keyword": None, "link": []}
-	search = {"type": "SEARCH","word": None, "node_id": None, "sender_id": None }
-	search_response = {"type": "SEARCH_RESPONSE","word": None, "node_id": None, "sender_id": None, "response":[]}
-	ping = {"type": "PING", "target_id": None, "sender_id": None, "ip_address": None}
-	ack = {"type": "ACK", "node_id": None, "ip_address": None}
-	ack_index = {"type": "ACK_INDEX", "node_id": None, "keyword": None}
-
-	routing_table = {}
-	information = {}
-	conditions = {}
-	polling = {}
-	wait_time = 10
-	node_id = 0
-
-	def get_time():
+	def get_time(self):
 		ts = time.time()
 		return datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
 
-	def to_hash (word): # to hash a given word according to spec
+	def to_hash (self, word): # to hash a given word according to spec
 		hash = 0 
 		for i in range(0, len(word)): 
 				hash = hash * 31 + ord(word[i])
 		return hash
 
-	def send (json_file, ip_address): 
+	def send (self, json_file, ip_address): 
 		mess = json.dumps(json_file)
 		try: 
 			sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -47,7 +49,7 @@ class Routing:
 			raise
 			#pass #handle exceptions 
 
-	def closest (target_node): #calcalate closest to but not greater than node. 
+	def closest (self, target_node): #calcalate closest to but not greater than node. 
 		closest_node = 0
 		above_node = 0 
 		for node in routing_table: 
@@ -58,7 +60,7 @@ class Routing:
 			pass
 		return routing_table[closest_node]
 
-	def wait_for_response (event, sender_id): 
+	def wait_for_response (self, event, sender_id): 
 		event.wait(wait_time)
 		if event.isSet() == False: #didn't recieve in time, pinging target node
 			print "failed"
@@ -71,7 +73,7 @@ class Routing:
 			polling[sender_id] = threading.Event() #creates a waiting thread 
 			polling_node(polling[sender_id], sender_id) # continues with theread?
 
-	def polling_node (event, sender_id): 
+	def polling_node (self, event, sender_id): 
 		event.wait(wait_time)
 		if event.isSet() == False:
 			try: #delete from routing table. 
@@ -80,7 +82,7 @@ class Routing:
 				pass # not in routing table
 
 	# need to work out which are replys if it is to itself. 
-	def receive (received_packet): 
+	def receive (self, received_packet): 
 		#wait for packets
 		json_file = json.dumps(received_packet)
 		packet =  json.loads(json_file)
@@ -206,24 +208,14 @@ class Routing:
 		else: 
 			raise ("Not a valid packet")
 
-	def __init__(routing, node):
-	    self.data = []
-	    routing_table = routing
-		node_id = node
-	    main()
+	def __init__(self,  node):
+			node_id = node 
+			Thread(target=self.main).start()			
+			print ":)"
 
-	def main(): 
-		print node_id
-		ip_address = "127.0.0.3"
-		#wait_for_response(conditions["test"], 5)
-		print information
-		receive(index)
-		print information
-		receive(index)
-		#send(routing, "127.0.0.1")
-		print information
-		receive(search)
-		print information
+	def main(self): 
+		sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+   		sock.bind((ip_address, 5005))
 		while True: 
-			packet = ack # listen to port
-			receive(packet) #new thread
+			packet, addr = sock.recvfrom(1024)
+			Thread(target=self.receive, args=packet) #new thread
