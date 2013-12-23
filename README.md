@@ -12,3 +12,10 @@ Running:
 Runs on python 2.7
 Run program by running: 
     python main.py
+
+Things working: 
+- When it recieves a packet that is not meant for itself, it passes it on 
+- Responds and acts appropirately when receives a packet for itself, not joining 
+
+Things not working: 
+-Joining
