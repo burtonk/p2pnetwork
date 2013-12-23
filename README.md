@@ -6,6 +6,7 @@ Distributed Systems P2P Solution
 Changes to Specification provided: 
 - No search results, dictionary instead "word": [(url,frequence)]
 - Interface changed. 
+- JOINING_NETWORK_RELAY_SIMPLIFIED carries joining nodes IP
 
 Running: 
 
