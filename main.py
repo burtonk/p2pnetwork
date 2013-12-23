@@ -4,7 +4,10 @@ import thread
 from project import *
 
 def main(): 
-	lol = Input("lol")
+
+	lol = Input("127.0.0.1", "3420", "dog") 
+
+	#self, bootstrap_node, target_id, keyword, routing_table
 
 if __name__ == "__main__":
     main()
