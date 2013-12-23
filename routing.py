@@ -10,7 +10,7 @@ import threading
 import thread
 
 join = {"type": "JOINING_NETWORK_SIMPLIFIED", "node_id": None, "target_id": None, "ip_address": None }
-join_relay = {"type": "JOINING_NETWORK_RELAY_SIMPLIFIED", "node_id": None, "target_id": None, "gateway_id": None }
+join_relay = {"type": "JOINING_NETWORK_RELAY_SIMPLIFIED", "node_id": None, "target_id": None, "gateway_id": None, "ip_address" : None}
 routing = {"type": "ROUTING_INFO", "gateway_id": None, "node_id": None, "ip_address": None, "routing_table" : []}
 leaving = {"type": "LEAVING_NETWORK", "node_id": None} 
 index = {"type": "INDEX", "target_id": None, "sender_id": None, "keyword": None, "link": []}
@@ -118,21 +118,64 @@ class Routing:
 		json_file = json.dumps(received_packet)
 		packet =  json.loads(json_file)
 		index = packet["type"]
-		if index == "JOINING_NETWORK_SIMPLIFIED": 
-			if packet["target_id"] == node_id: 
-				pass# add to index and reply. 
-			elif int(packet["gateway_id"]) == node_id: 
-				pass
+		if index == "JOINING_NETWORK_SIMPLIFIED": ###########################################DONE
+			if int(packet["gateway_id"]) == node_id: 
+				#pass on to others in the network
+				temp = join_relay
+				temp["node_id"] = packet["node_id"]
+				temp["target_id"] = packet["target_id"]
+				temp["ip_address"] = packet["ip_address"]
+				temp["gateway_id"] = node_id
+				ip = self.closest(packet["target_id"])
+				self.send(temp, ip)
+				#add to routing table
+				routing_table[packet["node_id"]] = packet["ip_address"]
+				#send pack routing table
+				temp = routing
+				temp["gateway_id"] = node_id
+				temp["node_id"] = packet["node_id"]
+				temp["ip_address"] = ip_address
+				temp["route_table"] = []
+				for key in routing_table: 
+					temp["route_table"].append({"node_id": key, "ip_address": routing_table[key]})
+				ip = self.closest(packet["node_id"])
+				self.send(temp, ip)
+
 			else: 
 				new_ip = closest(packet["target_node"])
 				send(packet, new_ip)
 
-		elif index == "JOINING_NETWORK_RELAY_SIMPLIFIED": 
+		elif index == "JOINING_NETWORK_RELAY_SIMPLIFIED": ###########################################DONE
 			if int(packet["target_id"]) == node_id: 
-				pass
+				#send routing table
+				temp = routing
+				temp["gateway_id"] = packet["gateway_id"]
+				temp["node_id"] = packet["node_id"]
+				temp["ip_address"] = ip_address
+				temp["route_table"] = []
+				for key in routing_table: 
+					temp["route_table"].append({"node_id": key, "ip_address": routing_table[key]})
+				ip = self.closest(packet["gateway_id"])
+				self.send(temp, ip)
+				#add to routing table
+				routing_table[packet["node_id"]] = packet["ip_address"]
+
 			elif int(packet["gateway_id"]) == node_id: 
 				pass #shouldn't be recieving this if you are the gateway node. 
 			else: 
+				#add to routing table 
+				routing_table[packet["node_id"]] = packet["ip_address"]
+				#pass back routing table
+				temp = routing
+				temp["gateway_id"] = packet["gateway_id"]
+				temp["node_id"] = packet["node_id"]
+				temp["ip_address"] = ip_address
+				temp["route_table"] = []
+				for key in routing_table: 
+					temp["route_table"].append({"node_id": key, "ip_address": routing_table[key]})
+				ip = self.closest(packet["gateway_id"])
+				self.send(temp, ip)
+				#pass on the message
 				new_ip = closest(packet["target_node"])
 				send(packet, new_ip)
 				
