@@ -59,8 +59,8 @@ class Input:
 				word = raw_input("\n Word: ")
 				url = raw_input("\n URL: ")
 				urls = url.split()
-				self.indexPage(urls, word)
 				print "Indexing - "+ word +" - "+ url
+				self.indexPage(urls, word)
 
 			elif int(request) == 3: #LEAVE NETWORK
 				self.leaveNetwork(node_id)
