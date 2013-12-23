@@ -6,6 +6,7 @@ import socket
 import datetime
 import time
 from threading import Thread
+import threading
 import thread
 
 join = {"type": "JOINING_NETWORK_SIMPLIFIED", "node_id": None, "target_id": None, "ip_address": None }
@@ -19,13 +20,14 @@ ping = {"type": "PING", "target_id": None, "sender_id": None, "ip_address": None
 ack = {"type": "ACK", "node_id": None, "ip_address": None}
 ack_index = {"type": "ACK_INDEX", "node_id": None, "keyword": None}
 
-routing_table = {}
+routing_table = {"7": "127.0.0.1","4": "127.0.0.2"}
 information = {}
 conditions = {}
 polling = {}
 wait_time = 10
 ip_address = "127.0.0.3"
 node_id = 0
+returned= {}
 	
 class Routing: 
 
@@ -39,12 +41,12 @@ class Routing:
 				hash = hash * 31 + ord(word[i])
 		return hash
 
-	def send (self, json_file, ip_address): 
+	def send (self, json_file, ip_address, typ): 
 		mess = json.dumps(json_file)
 		try: 
 			sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 			sock.sendto(mess, (ip_address, 5005))
-			print get_time() + " -- PACKET SENT TO "+ ip_address
+			print self.get_time() + " "+ typ+" -- PACKET SENT TO "+ ip_address
 		except: 
 			raise
 			#pass #handle exceptions 
@@ -57,21 +59,24 @@ class Routing:
 				if int(node) <= target_node:
 					closest_node = node
 		if closest_node == 0: 
-			pass
+			return 4##################################FIX IT! 
+			#raise ("No valid option")
 		return routing_table[closest_node]
 
 	def wait_for_response (self, event, sender_id): 
 		event.wait(wait_time)
 		if event.isSet() == False: #didn't recieve in time, pinging target node
-			print "failed"
+			print "No response received"
 			temp = ping
 			temp["target_id"] = sender_id
 			temp["sender_id"] = node_id
 			temp["ip_address"] = ip_address
-			ip = closest(sender_id)
-			send(temp, ip)
+			ip = self.closest(sender_id)
+			self.send(temp, ip, "PING")
 			polling[sender_id] = threading.Event() #creates a waiting thread 
-			polling_node(polling[sender_id], sender_id) # continues with theread?
+			self.polling_node(polling[sender_id], sender_id) # continues with theread?
+			return False
+		else: return True
 
 	def polling_node (self, event, sender_id): 
 		event.wait(wait_time)
@@ -80,6 +85,32 @@ class Routing:
 				del routing_table[sender_id]
 			except KeyError, e:
 				pass # not in routing table
+
+	def get_info(self, word): 
+		#need to wait until it happens
+		response = returned[word]
+		del returned[word]
+		return response
+
+	def index(self, packet): 
+		ip = self.closest(packet["target_id"])
+		self.send(packet, ip, "INDEX")
+		conditions[("INDEX", packet["keyword"])] = threading.Event()
+		resp = self.wait_for_response(conditions[("INDEX", packet["keyword"])], packet["target_id"])
+
+	def search_word(self, word): 
+		temp = search
+		temp["word"] = word
+		temp["sender_id"] = node_id
+		temp["node_id"] = self.to_hash(word)
+		ip = self.closest(temp["node_id"])
+		self.send(temp, ip, "SEARCH")
+		conditions[("SEARCH", word)] = threading.Event()
+		resp = self.wait_for_response(conditions[("SEARCH", word)], temp["node_id"])
+		if resp == True: 
+			return self.get_info(self, word)
+		else: 
+			return "No Information was returned"
 
 	# need to work out which are replys if it is to itself. 
 	def receive (self, received_packet): 
@@ -165,11 +196,11 @@ class Routing:
 				new_ip = closest(packet["node_id"])
 				send(packet, new_ip)
 
-		elif index == "SEARCH_RESPONSE": 
+		elif index == "SEARCH_RESPONSE": ###########################################DONE??
 			if int(packet["node_id"]) == node_id: 
 				try:
-					pass # need to set one in other class and print results
-					#insert into information
+					returned[packet["word"]] = packet["response"] # need to set one in other class and print results
+					conditions[("SEARCH", packet["word"])].set()
 				except Exception, e:
 					raise e
 			else: 
@@ -187,10 +218,10 @@ class Routing:
 				packet["ip_address"] = ip_address #change the IP to this node
 				send(packet, new_ip)
 
-		elif index == "ACK": 
+		elif index == "ACK": ###########################################DONE
 			if int(packet["node_id"]) == node_id: 
 				try:
-					conditions[("PING", packet["node_id"])].set() #???
+					polling[packet["node_id"]].set() #??? or polling?
 				except Exception, e:
 					raise e #not waiting for packet, possiby already timed out. 
 			else: 
@@ -198,9 +229,9 @@ class Routing:
 				packet["ip_address"] = ip_address
 				send(packet, new_ip)
 
-		elif index == "ACK_INDEX": 
+		elif index == "ACK_INDEX": ###########################################DONE
 			if int(packet["node_id"]) == node_id: 
-				pass #set input flas
+				conditions[("INDEX", packet["keyword"])].set()
 			else: 
 				new_ip = closest(packet["target_id"])
 				packet["ip_address"] = ip_address
@@ -211,7 +242,6 @@ class Routing:
 	def __init__(self,  node):
 			node_id = node 
 			Thread(target=self.main).start()			
-			print ":)"
 
 	def main(self): 
 		sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
