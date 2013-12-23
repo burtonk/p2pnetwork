@@ -16,10 +16,11 @@ search_response = {"type": "SEARCH_RESPONSE","word": None, "node_id": None, "sen
 ping = {"type": "PING", "target_id": None, "sender_id": None, "ip_address": None}
 ack = {"type": "ACK", "node_id": None, "ip_address": None}
 ack_index = {"type": "ACK", "node_id": None, "keyword": None}
-interact = None
-node_id = 0
+
 
 class Input: 
+	interact = None
+	node_id = 0
 
 	def to_hash (self, word):
 		hash = 0 
@@ -35,8 +36,13 @@ class Input:
 		print "Leaving Network... "
 		os.system("killall python")
 
-	def indexPage (self, url, unique_words):
-		pass
+	def indexPage (self, url, unique_word):
+		temp = index
+		temp["target_id"] = self.to_hash(unique_word)
+		temp["sender_id"] = node_id
+		temp["keyword"] = unique_word
+		temp["link"] = url
+		self.interact.index(temp)
 
 	def wait(self):
 		while True: 
@@ -47,11 +53,13 @@ class Input:
 				for word in words:
 					to_h = self.to_hash(word)
 					print "Searching for - "+word + " "+ str(to_h)
+					print self.interact.search_word(word) #wait until results to be return
 
 			elif int(request) == 2: #INDEX 
 				word = raw_input("\n Word: ")
 				url = raw_input("\n URL: ")
-				self.indexPage(url, word)
+				urls = url.split()
+				self.indexPage(urls, word)
 				print "Indexing - "+ word +" - "+ url
 
 			elif int(request) == 3: #LEAVE NETWORK
@@ -64,8 +72,9 @@ class Input:
 	def __init__(self, bootstrap_node, target_id, node): #routing, node
 		print node
 		print type(node)
-		node_id = self.to_hash(node)
+		self.node_id = self.to_hash(node)
 		self.joinNetwork(bootstrap_node, node_id, target_id)
-		interact = Routing(node_id)
+		self.interact = Routing(node_id)
+		print ":)"
 		Thread(target=self.wait()) 
     	
