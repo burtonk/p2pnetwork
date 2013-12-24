@@ -20,6 +20,6 @@ Things working:
 - Program receives input from user via command line. 
 
 Things not working: 
-- Due to time restraints, while I have tested all the response code seperately, I was not able to produce tests for more than one node due to thread complications. I used netcat to test the packets being sent and recieved with the command:
+- Due to the way the program receives input from user, I wasn't able to get the program to open a terminal for each node. While I have tested all the response code seperately, I was not able to produce tests for more than one node due to this and thread complications. I used netcat to test the packets being sent and recieved with the command:
 - nc -ul url port 
-- Because of this, I have commented the section of the code in the joining method that waits until a routing info packet has been received from the gateway node. (routing.py)
+- Because of this, I have commented the section of the code in the joining method that waits until a routing info packet has been received from the gateway node. (routing.py) so that the input can be seen. 
