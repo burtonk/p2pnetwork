@@ -3,6 +3,8 @@ p2pnetwork
 
 Distributed Systems P2P Solution
 
+PLEASE NOTE THAT THE PROGRAM USES A KILLALL PYTHON CODE TO CLOSE THE PROGRAM DUE TO THREADING
+
 Changes to Specification provided: 
 - No search results, dictionary instead "word": [(url,frequence)]
 - Interface changed. 
@@ -20,6 +22,6 @@ Things working:
 - Program receives input from user via command line. 
 
 Things not working: 
-- Due to the way the program receives input from user, I wasn't able to get the program to open a terminal for each node. While I have tested all the response code seperately, I was not able to produce tests for more than one node due to this and thread complications. I used netcat to test the packets being sent and recieved with the command:
+- Due to the way the program receives input from user, I wasn't able to get the program to open a terminal for each node. While I have tested all the response code seperately, I was not able to produce tests for more than one node due to this and thread complications. Therefore I used netcat to test the packets being sent and recieved with the command:
 - nc -ul url port 
 - Because of this, I have commented the section of the code in the joining method that waits until a routing info packet has been received from the gateway node. (routing.py) so that the input can be seen. 
