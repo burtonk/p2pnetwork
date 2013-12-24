@@ -26,10 +26,11 @@ conditions = {}
 polling = {}
 wait_time = 10
 ip_address = "127.0.0.3"
-node_id = 0
 returned= {}
 	
 class Routing: 
+
+	node_id = 0
 
 	def get_time(self):
 		ts = time.time()
@@ -40,6 +41,10 @@ class Routing:
 		for i in range(0, len(word)): 
 				hash = hash * 31 + ord(word[i])
 		return hash
+
+	def send_join(self, packet, ip):
+		packet["ip_address"] = ip_address
+		self.send(packet, ip, "JOIN")
 
 	def send (self, json_file, ip_address, typ): 
 		mess = json.dumps(json_file)
@@ -69,7 +74,7 @@ class Routing:
 			print "No response received"
 			temp = ping
 			temp["target_id"] = sender_id
-			temp["sender_id"] = node_id
+			temp["sender_id"] = str(self.node_id)
 			temp["ip_address"] = ip_address
 			ip = self.closest(sender_id)
 			self.send(temp, ip, "PING")
@@ -101,7 +106,7 @@ class Routing:
 	def search_word(self, word): 
 		temp = search
 		temp["word"] = word
-		temp["sender_id"] = node_id
+		temp["sender_id"] = str(self.node_id)
 		temp["node_id"] = self.to_hash(word)
 		ip = self.closest(temp["node_id"])
 		self.send(temp, ip, "SEARCH")
@@ -119,20 +124,20 @@ class Routing:
 		packet =  json.loads(json_file)
 		index = packet["type"]
 		if index == "JOINING_NETWORK_SIMPLIFIED": ###########################################DONE
-			if int(packet["gateway_id"]) == node_id: 
+			if int(packet["gateway_id"]) == self.node_id: 
 				#pass on to others in the network
 				temp = join_relay
 				temp["node_id"] = packet["node_id"]
 				temp["target_id"] = packet["target_id"]
 				temp["ip_address"] = packet["ip_address"]
-				temp["gateway_id"] = node_id
+				temp["gateway_id"] = str(self.node_id)
 				ip = self.closest(packet["target_id"])
 				self.send(temp, ip)
 				#add to routing table
 				routing_table[packet["node_id"]] = packet["ip_address"]
 				#send pack routing table
 				temp = routing
-				temp["gateway_id"] = node_id
+				temp["gateway_id"] = str(self.node_id)
 				temp["node_id"] = packet["node_id"]
 				temp["ip_address"] = ip_address
 				temp["route_table"] = []
@@ -160,7 +165,7 @@ class Routing:
 				#add to routing table
 				routing_table[packet["node_id"]] = packet["ip_address"]
 
-			elif int(packet["gateway_id"]) == node_id: 
+			elif int(packet["gateway_id"]) == self.node_id: 
 				pass #shouldn't be recieving this if you are the gateway node. 
 			else: 
 				#add to routing table 
@@ -180,7 +185,7 @@ class Routing:
 				send(packet, new_ip)
 				
 		elif index == "ROUTING_INFO": ###########################################DONE 
-			if int(packet["node_id"]) == node_id: 
+			if int(packet["node_id"]) == self.node_id: 
 				for node in packet["routing_table"]:
 					routing_table[node["node_id"]] = str(node["ip_address"])
 			elif int(packet["gateway_id"]) == node_id: 
@@ -197,7 +202,7 @@ class Routing:
 				pass #entry not in routing table. 
 
 		elif index == "INDEX":  ###########################################DONE 
-			if int(packet["target_id"]) == node_id:
+			if int(packet["target_id"]) == self.node_id:
 				keyword = packet["keyword"] 
 				if keyword in information.keys(): #keyword already exists 
 					the_list = information[keyword]
@@ -220,7 +225,7 @@ class Routing:
 				send(packet, new_ip)
 
 		elif index == "SEARCH": ###########################################DONE
-			if int(packet["node_id"]) == node_id: 
+			if int(packet["node_id"]) == self.node_id: 
 				try:
 					new_packet = search_response
 					links = information[packet["word"]]
@@ -240,7 +245,7 @@ class Routing:
 				send(packet, new_ip)
 
 		elif index == "SEARCH_RESPONSE": ###########################################DONE??
-			if int(packet["node_id"]) == node_id: 
+			if int(packet["node_id"]) == self.node_id: 
 				try:
 					returned[packet["word"]] = packet["response"] # need to set one in other class and print results
 					conditions[("SEARCH", packet["word"])].set()
@@ -251,9 +256,9 @@ class Routing:
 				send(packet, new_ip)
 
 		elif index == "PING": ###########################################DONE
-			if int(packet["target_id"]) == node_id: 
+			if int(packet["target_id"]) == self.node_id: 
 				new_packet = ack
-				new_packet["node_id"] = node_id
+				new_packet["node_id"] = str(self.node_id)
 				new_packet["ip_address"] = ip_address
 				send(new_packet, packet["ip_address"])
 			else: 
@@ -262,7 +267,7 @@ class Routing:
 				send(packet, new_ip)
 
 		elif index == "ACK": ###########################################DONE
-			if int(packet["node_id"]) == node_id: 
+			if int(packet["node_id"]) == self.node_id: 
 				try:
 					polling[packet["node_id"]].set() #??? or polling?
 				except Exception, e:
@@ -273,7 +278,7 @@ class Routing:
 				send(packet, new_ip)
 
 		elif index == "ACK_INDEX": ###########################################DONE
-			if int(packet["node_id"]) == node_id: 
+			if int(packet["node_id"]) == self.node_id: 
 				conditions[("INDEX", packet["keyword"])].set()
 			else: 
 				new_ip = closest(packet["target_id"])
@@ -283,7 +288,7 @@ class Routing:
 			raise ("Not a valid packet")
 
 	def __init__(self,  node):
-			node_id = node 
+			self.node_id = node 
 			Thread(target=self.main).start()			
 
 	def main(self): 
