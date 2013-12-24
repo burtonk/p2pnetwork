@@ -22,3 +22,4 @@ Things working:
 Things not working: 
 - Due to time restraints, while I have tested all the response code seperately, I was not able to produce tests for more than one node due to thread complications. I used netcat to test the packets being sent and recieved with the command:
 - nc -ul url port 
+- Because of this, I have commented the section of the code in the joining method that waits until a routing info packet has been received from the gateway node. (routing.py)
