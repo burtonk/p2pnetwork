@@ -21,6 +21,20 @@ ack_index = {"type": "ACK", "node_id": None, "keyword": None}
 class Input: 
 	interact = None
 	node_id = 0
+	ip_address = "127.0.0.2"
+
+	def get_time(self):
+		ts = time.time()
+		return datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
+
+	def send (self, json_file, ip_address, typ): 
+		mess = json.dumps(json_file)
+		try: 
+			sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+			sock.sendto(mess, (ip_address, 5005))
+			print self.get_time() + " "+ typ+" -- PACKET SENT TO "+ ip_address
+		except: 
+			raise
 
 	def to_hash (self, word):
 		hash = 0 
@@ -63,18 +77,22 @@ class Input:
 				self.indexPage(urls, word)
 
 			elif int(request) == 3: #LEAVE NETWORK
-				self.leaveNetwork(node_id)
+				self.leaveNetwork(self.node_id)
 				print "Leaving Network..."
 
 	def joinNetwork(self, bootstrap_node, identifier, target_identifier): 
-		pass
+		temp = join
+		temp["node_id"] = str(identifier)
+		temp["target_id"] = target_identifier
+		self.interact.send_join(temp, bootstrap_node)
+
 
 	def __init__(self, bootstrap_node, target_id, node): #routing, node
 		print node
 		print type(node)
-		self.node_id = self.to_hash(node)
-		self.joinNetwork(bootstrap_node, node_id, target_id)
+		node_id = self.to_hash(node)
 		self.interact = Routing(node_id)
+		self.joinNetwork(bootstrap_node, node_id, target_id)
 		print ":)"
 		Thread(target=self.wait()) 
     	
