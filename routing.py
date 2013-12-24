@@ -44,7 +44,7 @@ class Routing:
 		return hash
 
 
-	def send (self, json_file, ip_address, typ): 
+	def send (self, json_file, ip_address, typ): #function that sends the packets to the specific addresss and reports to user 
 		mess = json.dumps(json_file)
 		try: 
 			sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -59,7 +59,7 @@ class Routing:
 		self.send(packet, ip, "JOIN")
 		conditions[("JOIN", ip)] = threading.Event()
 		resp = self.wait_for_response(conditions[("JOIN", ip)], ip)
-		'''if resp == True:
+		'''if resp == True: #commented bit so that you are able to see it running as explained in readme
 			return "Connected."
 		else: 
 			print "Unable to Connect to Network"
@@ -74,11 +74,11 @@ class Routing:
 				if int(node) <= target_node:
 					closest_node = node
 		if closest_node == 0: 
-			return 4##################################FIX IT! 
+			return 4 #this should not occur as it would be for this node or go to the local set, as this is the simplified version, i am ignoring it 
 			#raise ("No valid option")
 		return routing_table[closest_node]
 
-	def wait_for_response (self, event, sender_id): 
+	def wait_for_response (self, event, sender_id): #method to ensure that packets are returned
 		event.wait(wait_time)
 		if event.isSet() == False: #didn't recieve in time, pinging target node
 			print "No response received"
@@ -93,7 +93,7 @@ class Routing:
 			return False
 		else: return True
 
-	def polling_node (self, event, sender_id): 
+	def polling_node (self, event, sender_id): #waiting for ping response, has different actions than wait_for_response
 		event.wait(wait_time)
 		if event.isSet() == False:
 			try: #delete from routing table. 
@@ -101,19 +101,19 @@ class Routing:
 			except KeyError, e:
 				pass # not in routing table
 
-	def get_info(self, word): 
+	def get_info(self, word): #allows the input to receive the information
 		#need to wait until it happens
 		response = returned[word]
 		del returned[word]
 		return response
 
-	def index(self, packet): 
+	def index(self, packet): #used to send a index request
 		ip = self.closest(packet["target_id"])
 		self.send(packet, ip, "INDEX")
 		conditions[("INDEX", packet["keyword"])] = threading.Event()
 		resp = self.wait_for_response(conditions[("INDEX", packet["keyword"])], packet["target_id"])
 
-	def search_word(self, word): 
+	def search_word(self, word): #used to send and receive a send request from the input
 		temp = search
 		temp["word"] = word
 		temp["sender_id"] = str(self.node_id)
@@ -128,7 +128,7 @@ class Routing:
 			return "No Information was returned"
 
 	# need to work out which are replys if it is to itself. 
-	def receive (self, received_packet): 
+	def receive (self, received_packet): #deciefers the packet recieved. 
 		#wait for packets
 		json_file = json.dumps(received_packet)
 		packet =  json.loads(json_file)
@@ -305,9 +305,9 @@ class Routing:
 			self.node_id = node 
 			Thread(target=self.main).start()			
 
-	def main(self): 
+	def main(self): #always running
 		sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
    		sock.bind((ip_address, 5005))
 		while True: 
 			packet, addr = sock.recvfrom(1024)
-			Thread(target=self.receive, args=packet) #new thread
+			Thread(target=self.receive, args=packet) #new thread to deal with the packet.
