@@ -8,6 +8,7 @@ import time
 from threading import Thread
 import threading
 import thread
+import os
 
 join = {"type": "JOINING_NETWORK_SIMPLIFIED", "node_id": None, "target_id": None, "ip_address": None }
 join_relay = {"type": "JOINING_NETWORK_RELAY_SIMPLIFIED", "node_id": None, "target_id": None, "gateway_id": None, "ip_address" : None}
@@ -42,9 +43,6 @@ class Routing:
 				hash = hash * 31 + ord(word[i])
 		return hash
 
-	def send_join(self, packet, ip):
-		packet["ip_address"] = ip_address
-		self.send(packet, ip, "JOIN")
 
 	def send (self, json_file, ip_address, typ): 
 		mess = json.dumps(json_file)
@@ -55,6 +53,18 @@ class Routing:
 		except: 
 			raise
 			#pass #handle exceptions 
+
+	def send_join(self, packet, ip):
+		packet["ip_address"] = ip_address
+		self.send(packet, ip, "JOIN")
+		conditions[("JOIN", ip)] = threading.Event()
+		resp = self.wait_for_response(conditions[("JOIN", ip)], ip)
+		'''if resp == True:
+			return "Connected."
+		else: 
+			print "Unable to Connect to Network"
+			os.system("killall python")'''
+		return "Connected"
 
 	def closest (self, target_node): #calcalate closest to but not greater than node. 
 		closest_node = 0
@@ -186,6 +196,10 @@ class Routing:
 				
 		elif index == "ROUTING_INFO": ###########################################DONE 
 			if int(packet["node_id"]) == self.node_id: 
+				try:
+					conditions[("JOIN", packet["ip_address"])].set()
+				except Exception, e:
+					pass # should only react for first gateway noe. 
 				for node in packet["routing_table"]:
 					routing_table[node["node_id"]] = str(node["ip_address"])
 			elif int(packet["gateway_id"]) == node_id: 
